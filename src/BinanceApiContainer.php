@@ -203,7 +203,7 @@ class BinanceApiContainer
      */
     public function postOrder($params)
     {
-        return $this->_makeApiRequest('POST', 'order', 'SIGNED', $params);
+        return $this->_makeApiRequest('POST', 'order', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -229,7 +229,7 @@ class BinanceApiContainer
      */
     public function postOrderTest($params)
     {
-        return $this->_makeApiRequest('POST', 'order/test', 'SIGNED', $params);
+        return $this->_makeApiRequest('POST', 'order/test', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -249,7 +249,7 @@ class BinanceApiContainer
      */
     public function getOrder($params)
     {
-        return $this->_makeApiRequest('GET', 'order', 'SIGNED', $params);
+        return $this->_makeApiRequest('GET', 'order', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -270,7 +270,7 @@ class BinanceApiContainer
      */
     public function cancelOrder($params)
     {
-        return $this->_makeApiRequest('DELETE', 'order', 'SIGNED', $params);
+        return $this->_makeApiRequest('DELETE', 'order', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -287,7 +287,7 @@ class BinanceApiContainer
      */
     public function getOpenOrders($params)
     {
-        return $this->_makeApiRequest('GET', 'openOrders', 'SIGNED', $params);
+        return $this->_makeApiRequest('GET', 'openOrders', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -306,7 +306,7 @@ class BinanceApiContainer
      */
     public function getOrders($params)
     {
-        return $this->_makeApiRequest('GET', 'allOrders', 'SIGNED', $params);
+        return $this->_makeApiRequest('GET', 'allOrders', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -322,7 +322,7 @@ class BinanceApiContainer
      */
     public function getAccount($params)
     {
-        return $this->_makeApiRequest('GET', 'account', 'SIGNED', $params);
+        return $this->_makeApiRequest('GET', 'account', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -341,7 +341,7 @@ class BinanceApiContainer
      */
     public function getTrades($params)
     {
-        return $this->_makeApiRequest('GET', 'myTrades', 'SIGNED', $params);
+        return $this->_makeApiRequest('GET', 'myTrades', 'SIGNED', $params, ConnectionDetails::API_VERSION_3);
     }
 
     /**
@@ -361,7 +361,7 @@ class BinanceApiContainer
      */
     public function withdraw($params)
     {
-        return $this->_makeApiRequest('POSTV2', 'wapi/v1/withdraw.html', 'WAPI_SIGNED', $params);
+        return $this->_makeApiRequest('POSTV2', 'withdraw.html', 'WAPI_SIGNED', $params, ConnectionDetails::WAPI_VERSION_1);
     }
 
     /**
@@ -381,7 +381,7 @@ class BinanceApiContainer
      */
     public function getDepositHistory($params)
     {
-        return $this->_makeApiRequest('POSTV2', 'wapi/v1/getDepositHistory.html', 'WAPI_SIGNED', $params);
+        return $this->_makeApiRequest('POSTV2', 'getDepositHistory.html', 'WAPI_SIGNED', $params, ConnectionDetails::WAPI_VERSION_1);
     }
 
     /**
@@ -401,7 +401,7 @@ class BinanceApiContainer
      */
     public function getWithdrawHistory($params)
     {
-        return $this->_makeApiRequest('POSTV2', 'wapi/v1/getWithdrawHistory.html', 'WAPI_SIGNED', $params);
+        return $this->_makeApiRequest('POSTV2', 'getWithdrawHistory.html', 'WAPI_SIGNED', $params, ConnectionDetails::WAPI_VERSION_1);
     }
 
     /**
@@ -506,32 +506,31 @@ class BinanceApiContainer
      * @param string $endPoint     The API endpoint.
      * @param string $securityType Security type enum.
      * @param array  $params       Additional parameters.
+     * @param string $apiVersion   Api Version (defaults to 1, 1/3 available)
      *
      * @return \Psr\Http\Message\ResponseInterface
      * @throws BinanceApiException
      */
-    private function _makeApiRequest($type, $endPoint, $securityType = 'NONE', $params = [])
+    protected function _makeApiRequest($type, $endPoint, $securityType = 'NONE', $params = [], $apiVersion = ConnectionDetails::API_VERSION_1)
     {
         $params = array_filter($params, 'strlen');
+
+        $url = ConnectionDetails::API_URL . $apiVersion . $endPoint;
 
         switch (strtoupper($securityType)) {
             default:
             case 'NONE':
                 $client = new Client(['http_errors' => false]);
-                $url = ConnectionDetails::API_URL . ConnectionDetails::API_VERSION . $endPoint;
                 break;
             case 'API-KEY':
                 $client = new Client(['headers' => ['X-MBX-APIKEY' => $this->_apiKey], 'http_errors' => false]);
-                $url = ConnectionDetails::API_URL . ConnectionDetails::API_VERSION . $endPoint;
                 break;
             case 'SIGNED':
                 $client = new Client(['headers' => ['X-MBX-APIKEY' => $this->_apiKey], 'http_errors' => false]);
-                $url = ConnectionDetails::API_URL . ConnectionDetails::API_VERSION_SIGNED . $endPoint;
                 $params['signature'] = hash_hmac('sha256', http_build_query($params), $this->_apiSecret);
                 break;
             case 'WAPI_SIGNED':
                 $client = new Client(['headers' => ['X-MBX-APIKEY' => $this->_apiKey], 'http_errors' => false]);
-                $url = ConnectionDetails::API_URL . $endPoint;
                 $params['signature'] = hash_hmac('sha256', http_build_query($params), $this->_apiSecret);
                 break;
         }
